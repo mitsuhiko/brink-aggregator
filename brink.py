@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    bf3
-    ~~~
+    brink
+    ~~~~~
 
-    Battlefield3 aggregator script thingy.  Uses logging from the stdlib and
+    Brink aggregator script thingy.  Uses logging from the stdlib and
     something has to configure the logger before this can safely be used.
 
     :copyright: (c) Copyright 2011 by Armin Ronacher.
@@ -65,15 +65,16 @@ Message:
 _security_token_re = re.compile(r'var SECURITYTOKEN\s+=\s+"([^"]+)"')
 _post_reference_re = re.compile(
     r'<img class="inlineimg" src="images/icons/icon1\.gif" alt="" border="0" />'
-    r'\s+<a href=".*?\.html#post(\d+)'
+    r'\s+<a href="showthread.php\?p=(\d+)'
 )
 _post_detail_re = re.compile(
-    r'(?P<date>(?:Today|Yesterday|\d{2}-\d{2}-\d{4}), \d{2}:\d{2} (?:AM|PM)).*?'
+    r'<!-- status icon and date -->.*?'
+    r'(?P<date>(?:Today|Yesterday|\d+(?:st|nd|rd|th)[^,]+), \d{2}:\d{2}).*?'
     r'<!-- message -->(?P<contents>.*?)<!-- / message -->'
     r'(?usm)'
 )
 _steam_id_re = re.compile('steamcommunity.com/openid/id/(.*?)$')
-logger = logging.getLogger('bf3')
+logger = logging.getLogger('brink')
 
 
 def call_steam_api(_method, **options):
@@ -170,7 +171,7 @@ class Message(db.Model):
     def source_url(self):
         if self.source == 'forums':
             return urljoin(app.config['FORUM_URL'],
-                           '/%s-post.html' % self.reference_id)
+                           'showthread.php?p=%s' % self.reference_id)
         elif self.source == 'twitter':
             return 'http://twitter.com/%s/status/%s' % (
                 self.developer.twitter_name,
@@ -282,18 +283,17 @@ class AuthenticationError(Exception):
 
 
 class ForumSearcher(object):
-    """Gives access to the Battlefield3 forums."""
+    """Gives access to the Splash Damage forums."""
     user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
 
     def __init__(self, username, password):
         self.username = username
         self.password = password
-
         self.jar = cookielib.CookieJar()
         self._opener = urllib2.build_opener(
             urllib2.HTTPCookieProcessor(self.jar))
 
-        resp = self.open_url('/login.php?do=login', data={
+        resp = self.open_url('login.php?do=login', data={
             'vb_login_username':        self.username,
             'vb_login_password':        self.password,
             'securitytoken':            'guest',
@@ -343,18 +343,21 @@ class ForumSearcher(object):
 
     def parse_date(self, string):
         """Parses a date from the forums."""
-        args = string.strip().lower().rsplit(None, 1)
-        if args[0].startswith(('today,', 'yesterday,')):
-            strdelta, strtime = args[0].split(',', 1)
-            time = datetime.strptime(strtime.strip(), '%H:%M')
+        # hack hack hack
+        value = string.strip().lower() \
+            .replace('st ', ' ') \
+            .replace('nd ', ' ') \
+            .replace('rd ', ' ') \
+            .replace('th ', ' ')
+        if value.startswith(('today,', 'yesterday,')):
+            args = value.split()
+            time = datetime.strptime(args[1].strip(), '%H:%M')
             now = datetime.utcnow()
             val = time.replace(day=now.day, month=now.month, year=now.year)
-            if strdelta == 'yesterday':
+            if args[0].startswith('yesterday,'):
                 val -= timedelta(days=1)
         else:
-            val = datetime.strptime(args[0], '%d-%m-%Y, %H:%M')
-        if args[-1] == 'pm':
-            val += timedelta(hours=12)
+            val = datetime.strptime(value, '%d %b %Y, %H:%M')
         return val
 
     def parse_text(self, text):
@@ -440,7 +443,7 @@ class ForumSearcher(object):
 
     def get_post(self, post_id):
         """Gets all relevant information for the given post"""
-        html = self.open_url('/%d-post.html' % post_id).read()
+        html = self.open_url('showpost.php?p=%d' % post_id).read()
         post = _post_detail_re.search(html)
         if post is None:
             raise RuntimeError('Could not parse post :(')
@@ -451,17 +454,14 @@ class ForumSearcher(object):
             'text':         self.parse_text(groups['contents'])
         }
 
-    def find_user_posts(self, username, forum_id=None):
-        """Finds the posts of a user in a given forum"""
-        if forum_id is None:
-            forum_id = app.config['FORUM_ID']
-        logger.info('Looking for posts by %s in forum #%d',
-                      username, forum_id)
-        resp = self.open_url('/search.php', data={
+    def find_user_posts(self, username):
+        """Finds the posts of a user"""
+        logger.info('Looking for posts by %s', username)
+        resp = self.open_url('search.php', data={
             'do':               'process',
             'searchuser':       username,
             'exactname':        '1',
-            'forumchoice[]':    '%d' % forum_id,
+            'forumchoice[]':    str(app.config['FORUM_ID']),
             'childforums':      '1',
             'saveprefs':        '1',
             'beforeafter':      'after',
@@ -501,12 +501,6 @@ def url_for_different_page(page):
     args['page'] = page
     return url_for(request.endpoint, **args)
 app.jinja_env.globals['url_for_different_page'] = url_for_different_page
-
-
-def get_forum_searcher():
-    """Return a useful forum searcher."""
-    return ForumSearcher(app.config['FORUM_USERNAME'],
-                         app.config['FORUM_PASSWORD'])
 
 
 def get_tweets(username):
@@ -564,12 +558,17 @@ def sync_tweets(developer):
         db.session.add(msg)
 
 
+def get_forum_searcher():
+    return ForumSearcher(app.config['FORUM_USERNAME'],
+                         app.config['FORUM_PASSWORD'])
+
+
 def sync():
     """Synchronize with database"""
     logger.info('Synchronizing upstream posts')
     try:
         searcher = get_forum_searcher()
-    except (IOError, AuthenticationError):
+    except IOError:
         searcher = None
     for dev in Developer.query.all():
         if dev.forum_name is not None:

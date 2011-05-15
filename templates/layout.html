@@ -1,5 +1,5 @@
 <!doctype html>
-<title>{% block title %}{% endblock %} | Battlefield3 Development News Aggregator</title>
+<title>{% block title %}{% endblock %} | Brink Developer Aggregator</title>
 <link rel=stylesheet href={{ url_for('static', filename='style.css') }} type=text/css>
 <link rel="shortcut icon" href={{ url_for('static', filename='favicon.png') }} type=image/png>
 <script type=text/javascript src=https://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js></script>
@@ -15,7 +15,7 @@
 {%- endfor %}
 <div class=page>
   <div class=header>
-    <h1>Battlefield 3 Development News Aggregator</h1>
+    <h1>Brink Developer Aggregator</h1>
   </div>
   <p class=steam-login>
   {%- if not g.user %}
@@ -43,10 +43,10 @@
       {% block body %}{% endblock %}
     </div>
     <div class=legal>
-      Website &copy; Copyright 2011 by <a href=http://lucumr.pocoo.org/>Armin Ronacher</a>.<br>
+      Website &copy; Copyright 2011 by <a href=http://immersedcode.org/>Armin Ronacher</a>.<br>
       Twitter and forum posts by their respective authors.<br>
       Their views might be personal opinion and do not necessarily
-      represent the views or opinions of EA and/or DICE.<br>
+      represent the views or opinions of Splash Damage and/or Bethesda.<br>
       Trademarks belong to their respective owners.<br>
       User authentication <a href=http://steampowered.com/>Powered by Steam</a>.
       {% if g.user and g.user.is_admin %}

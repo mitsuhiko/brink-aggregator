@@ -1,21 +1,21 @@
 from flaskext.script import Manager
-import bf3
+import brink
 
-manager = Manager(bf3.app)
+manager = Manager(brink.app)
 
 
 @manager.command
 def initdb():
     """Create the database tables"""
-    print 'Using database %s' % bf3.db.engine.url
-    bf3.db.create_all()
+    print 'Using database %s' % brink.db.engine.url
+    brink.db.create_all()
     print 'Created tables'
 
 
 @manager.command
 def sync():
     """Download new messages from twitter and forums"""
-    bf3.sync()
+    brink.sync()
     print 'Done syncing'
 
 
