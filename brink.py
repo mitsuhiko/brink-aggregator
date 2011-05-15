@@ -70,6 +70,8 @@ _post_reference_re = re.compile(
 _post_detail_re = re.compile(
     r'<!-- status icon and date -->.*?'
     r'(?P<date>(?:Today|Yesterday|\d+(?:st|nd|rd|th)[^,]+), \d{2}:\d{2}).*?'
+    r'<!-- icon and title -->.*?'
+    r'<strong>(?P<title>.*?)</strong>.*?'
     r'<!-- message -->(?P<contents>.*?)<!-- / message -->'
     r'(?usm)'
 )
@@ -451,7 +453,11 @@ class ForumSearcher(object):
         return {
             'id':           post_id,
             'date':         self.parse_date(groups['date']),
-            'text':         self.parse_text(groups['contents'])
+            'text':         u'''
+                <div class=title>%s</div>
+                %s
+            ''' % (groups['title'].decode('iso-8859-1'),
+                   self.parse_text(groups['contents']))
         }
 
     def find_user_posts(self, username):
@@ -694,7 +700,8 @@ def show_developers_redirect():
 @app.route('/developers/')
 def show_developers():
     return render_template('developers.html',
-        developers=Developer.query.order_by(Developer.name).all())
+        developers=Developer.query.outerjoin(Message).group_by(Developer.id) \
+            .add_columns(Developer.id == Message.developer_id).all())
 
 
 @app.route('/about')

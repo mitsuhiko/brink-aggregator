@@ -68,7 +68,7 @@ def install():
     import brink
     for name, nick, description in DEVS:
         dev = brink.Developer(name, forum_name=nick)
-        dev.description = '<p>' + description
+        dev.description = description
         brink.db.session.add(dev)
     brink.db.session.commit()
 

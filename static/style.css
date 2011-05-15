@@ -206,6 +206,11 @@ ul.news li.item-forums blockquote {
     margin: 15px 30px;
 }
 
+ul.news li div.title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
 /* :::: OTHER BOXES :::: */
 
 dl.developer-box, div.box {
@@ -249,4 +254,8 @@ div.admin-box dd {
 div.admin-box dt {
     margin: 0;
     padding: 0;
+}
+
+ul li.faded > a {
+    color: #98DDE9;
 }

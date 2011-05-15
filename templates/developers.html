@@ -4,12 +4,14 @@
   <h2>Developers</h2>
   <div class=box>
     <p>
-      The following developers are currently tracker by this website:
+      The following developers are currently tracked by this website.  Developers that
+      have not yet written any posts are marked in a light color.
     <ul>
-    {%- for developer in developers %}
-      <li><a href={{ url_for('show_developer', slug=developer.slug) }}>{{ developer.name }}</a>
+    {%- for developer, has_messages in developers %}
+      <li{{ ' class=faded' if not has_messages }}><a href={{
+        url_for('show_developer', slug=developer.slug) }}>{{ developer.name }}</a>
         {% if developer.twitter_name %}aka <a href=http://twitter.com/{{ developer.twitter_name
-          }}>@{{ developer.twitter_name }}</a>{% endif %}
+          }}>@{{ developer.twitter_name }}</a>{% endif %} — {{ developer.description }}
     {%- endfor %}
     </ul>
     <p>
