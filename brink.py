@@ -662,7 +662,7 @@ def show_tweets(page):
 @app.route('/forums/page/<int:page>')
 def show_forums(page):
     return show_listing('show_forums.html', page,
-        Message.query.filter_by(source='forums'), per_page=10)
+        Message.query.filter_by(source='forums'), per_page=20)
 
 
 @app.route('/developer/<slug>/', defaults={'page': 1})
