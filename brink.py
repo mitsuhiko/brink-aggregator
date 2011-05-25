@@ -15,6 +15,7 @@ import urllib2
 import cookielib
 import html5lib
 import logging
+from lxml import etree
 from twitter_text import TwitterText
 from datetime import datetime, timedelta
 from urlparse import urljoin
@@ -388,6 +389,8 @@ class ForumSearcher(object):
             parent.remove(node)
 
         def transform(node):
+            if node.tag is etree.Comment:
+                return node
             if '}' in node.tag:
                 node.tag = node.tag.split('}')[-1]
             if node.tag == 'a':
@@ -407,7 +410,8 @@ class ForumSearcher(object):
                 node.attrib.pop('cellspacing', None)
             elif node.tag == 'div':
                 if node.getchildren():
-                    div_children = node.getchildren()
+                    div_children = [x for x in node.getchildren()
+                                    if x.tag is not etree.Comment]
                     if len(div_children) >= 2 and \
                        div_children[0].tag.split('}')[-1] == 'div' and \
                        div_children[0].text and \
