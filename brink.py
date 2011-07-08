@@ -550,7 +550,10 @@ def sync_forum_posts(searcher, developer):
 def sync_tweets(developer):
     """Finds new tweets for the given developer"""
     logger.info('Checking tweets of @%s', developer.twitter_name)
-    tweets = get_tweets(developer.twitter_name)
+    try:
+        tweets = get_tweets(developer.twitter_name)
+    except IOError:
+        return
     for tweet in tweets:
         hidden = bool(tweet.get('in_reply_to_user_id'))
         msg = Message.query.filter_by(
